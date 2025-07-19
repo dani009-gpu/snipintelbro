@@ -1,19 +1,18 @@
-"""SPIDER INTEL - BACKEND COMPLET AVEC RECHERCHE DE PERSONNALITÉS"""
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.security import HTTPBearer
+"""SPIDER INTEL - BACKEND COMPLET"""
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import sqlite3, shodan, requests, os, wikipedia
+import sqlite3
+import os
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
-import jwt, datetime
-from io import BytesIO
+import uvicorn
+from typing import Optional
+import datetime
 
-# ================= CONFIG =================
 app = FastAPI()
 
-# Middleware CORS
+# Configuration CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,16 +20,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-security = HTTPBearer()
-SECRET_KEY = "ff986a98-0dfc-4492-9393-ca1a75cd26c2"
+# Configuration de base
 DB_NAME = "spiderintel.db"
 
-# ================= MODÈLES =================
+# Modèles
 class Target(BaseModel):
-    type: str  # "email", "ip", "domain", "celebrity"
+    type: str  # "email", "ip", "domain", "username"
     value: str
 
-# ================= BASE DE DONNÉES =================
+# Initialisation DB
 def init_db():
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
@@ -45,62 +43,42 @@ def init_db():
         """)
         conn.commit()
 
-# ================= UTILS OSINT =================
+# Fonctions de scan
 def scan_email(email: str):
     return {
-        "status": "danger",
-        "leaks": ["Adobe", "LinkedIn"],
+        "status": "success",
+        "email": email,
         "is_disposable": False,
-        "is_valid": True
+        "leaks": ["Adobe", "LinkedIn"]
     }
 
 def scan_ip(ip: str):
-    try:
-        api = shodan.Shodan("b60fae6f92274daca86121eaf2656737")
-        return api.host(ip)
-    except:
-        return {
-            "ip": ip,
-            "country": "France",
-            "city": "Paris",
-            "status": "warning"
-        }
+    return {
+        "status": "success",
+        "ip": ip,
+        "location": "Simulation: Paris, France",
+        "isp": "Simulation ISP"
+    }
 
-def scan_celebrity(name: str):
-    """Nouvelle fonction pour les célébrités avec Wikipedia et images"""
-    try:
-        # Configuration Wikipedia
-        wikipedia.set_lang("fr")
-        
-        # Récupération des données
-        page = wikipedia.page(name, auto_suggest=True)
-        summary = wikipedia.summary(name, sentences=3)
-        
-        # Récupération d'une image (premier résultat Google)
-        img_url = None
-        try:
-            search_url = f"https://www.google.com/search?tbm=isch&q={name}"
-            headers = {"User-Agent": "Mozilla/5.0"}
-            response = requests.get(search_url, headers=headers)
-            # Parsing simplifié pour récupérer une image
-            img_url = "https://via.placeholder.com/300?text=Image+non+disponible"
-        except:
-            pass
-            
-        return {
-            "name": name,
-            "summary": summary,
-            "url": page.url,
-            "image": img_url,
-            "categories": page.categories[:5],
-            "status": "found"
-        }
-    except wikipedia.exceptions.PageError:
-        return {"status": "not_found", "name": name}
-    except Exception as e:
-        return {"status": "error", "error": str(e)}
+def scan_domain(domain: str):
+    return {
+        "status": "success",
+        "domain": domain,
+        "registrar": "Simulation Registrar",
+        "creation_date": "2020-01-01"
+    }
 
-# ================= GÉNÉRATION PDF =================
+def scan_username(username: str):
+    return {
+        "status": "success",
+        "username": username,
+        "social_media": {
+            "twitter": f"https://twitter.com/{username}",
+            "github": f"https://github.com/{username}"
+        }
+    }
+
+# Génération PDF
 def generate_pdf(target: Target, result: dict):
     try:
         if not os.path.exists('reports'):
@@ -116,31 +94,15 @@ def generate_pdf(target: Target, result: dict):
         c.drawString(72, 750, f"Rapport OSINT - {target.type.upper()}")
         c.drawString(72, 730, f"Cible: {target.value}")
         
-        # Image pour les célébrités
-        if target.type == "celebrity" and result.get("image"):
-            try:
-                img_data = requests.get(result["image"]).content
-                img = ImageReader(BytesIO(img_data))
-                c.drawImage(img, 72, 550, width=100, height=100)
-                y_position = 500
-            except:
-                y_position = 700
-        else:
-            y_position = 700
-        
         # Contenu
+        y = 700
         c.setFont("Helvetica", 12)
         for key, value in result.items():
-            if key == "image":
-                continue
-                
-            if y_position < 50:
+            if y < 50:
                 c.showPage()
-                y_position = 750
-                
-            text = f"{key}: {str(value)[:200]}"  # Limite de longueur
-            c.drawString(72, y_position, text)
-            y_position -= 20
+                y = 750
+            c.drawString(72, y, f"{key}: {str(value)}")
+            y -= 20
         
         c.save()
         return pdf_path
@@ -148,47 +110,23 @@ def generate_pdf(target: Target, result: dict):
         print(f"Erreur génération PDF: {e}")
         return None
 
-# ================= ROUTES =================
+# Routes
 @app.post("/scan")
 async def scan(target: Target):
     try:
-        # Log de débogage
-        print(f"🔍 Requête reçue - Type: {target.type}, Valeur: {target.value}")
-        
-        # Simulation réussie pour tous les types
-        result = {
-            "email": {
-                "status": "success",
-                "message": "Email analysé",
-                "data": {"leaks": ["Adobe"]}
-            },
-            "ip": {
-                "status": "success",
-                "message": "IP analysée",
-                "data": {"country": "France"}
-            },
-            "domain": {
-                "status": "success", 
-                "message": "Domaine analysé",
-                "data": {"registrar": "OVH"}
-            },
-            "celebrity": {
-                "status": "success",
-                "message": "Célébrité trouvée",
-                "data": {"name": target.value}
-            }
-        }.get(target.type.lower(), {"status": "error", "message": "Type inconnu"})
-        
-        return {
-            "status": "success",
-            "target": target,
-            "result": result,
-            "pdf_url": f"/reports/simulation.pdf"  # Chemin simulé
+        # Sélection de la fonction de scan
+        scan_functions = {
+            "email": scan_email,
+            "ip": scan_ip,
+            "domain": scan_domain,
+            "username": scan_username
         }
         
-    except Exception as e:
-        print(f"🔥 ERREUR: {str(e)}")  # Log l'erreur complète
-        raise HTTPException(500, f"Erreur simplifiée: {str(e)}")
+        if target.type not in scan_functions:
+            raise HTTPException(400, "Type de cible non supporté")
+        
+        result = scan_functions[target.type](target.value)
+        
         # Sauvegarde en DB
         with sqlite3.connect(DB_NAME) as conn:
             conn.execute(
@@ -212,10 +150,9 @@ async def scan(target: Target):
     except Exception as e:
         raise HTTPException(500, f"Erreur serveur: {str(e)}")
 
-# ================= LANCEMENT =================
+# Point d'entrée
 if __name__ == "__main__":
     init_db()
-    import uvicorn
     uvicorn.run(
         "backend:app",
         host="0.0.0.0",
