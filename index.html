@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -6,72 +6,100 @@
     <title>Spider Intel | Dashboard OSINT</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* ================= VARIABLES DE COULEUR ================= */
         :root {
-            --primary: #6e48aa;
-            --primary-dark: #5d3d91;
-            --secondary: #9d50bb;
-            --dark: #1e1e2c;
-            --light: #f5f6fa;
-            --danger: #e74c3c;
-            --success: #2ecc71;
-            --warning: #f39c12;
-            --card-bg: #ffffff;
-            --text-color: #333;
+            --primary: #6C63FF;    /* Violet doux */
+            --primary-light: #A5A2FF;
+            --primary-dark: #4A42D4;
+            --secondary: #FF6584; /* Rose doux */
+            --dark: #2D3748;      /* Gris foncé */
+            --light: #F7FAFC;      /* Gris très clair */
+            --lighter: #FFFFFF;    /* Blanc pur */
+            --danger: #FF6B6B;     /* Rouge doux */
+            --success: #68D391;    /* Vert doux */
+            --warning: #F6AD55;    /* Orange doux */
+            --info: #63B3ED;       /* Bleu doux */
+            
+            --text: #4A5568;       /* Gris texte */
+            --text-light: #718096;
+            --border: #E2E8F0;     /* Gris bordure */
+            
+            --card-bg: var(--lighter);
+            --page-bg: #F5F7FA;    /* Fond de page très léger */
         }
 
+        /* ================= RÉINITIALISATION ================= */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            background-color: var(--page-bg);
+            color: var(--text);
+            line-height: 1.6;
             min-height: 100vh;
-            color: var(--text-color);
         }
 
+        /* ================= STRUCTURE PRINCIPALE ================= */
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 2rem 1.5rem;
         }
 
+        /* ================= EN-TÊTE ================= */
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 3rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
         }
 
         .logo {
             display: flex;
             align-items: center;
             gap: 1rem;
+            text-decoration: none;
         }
 
         .logo-icon {
             font-size: 2.5rem;
             color: var(--primary);
+            transition: transform 0.3s;
+        }
+
+        .logo:hover .logo-icon {
+            transform: rotate(15deg);
         }
 
         .logo-text {
             font-size: 1.8rem;
-            font-weight: 700;
+            font-weight: 800;
             background: linear-gradient(to right, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
         }
 
+        /* ================= CARTE DE SCAN ================= */
         .scan-card {
             background: var(--card-bg);
             border-radius: 16px;
             padding: 2.5rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
             margin-bottom: 3rem;
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.03);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .scan-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
         }
 
         .scan-title {
@@ -83,6 +111,7 @@
             gap: 0.8rem;
         }
 
+        /* ================= FORMULAIRE ================= */
         .scan-form {
             display: grid;
             grid-template-columns: 1fr 2fr auto;
@@ -104,25 +133,29 @@
             margin-bottom: 0.5rem;
             font-weight: 600;
             color: var(--primary-dark);
+            font-size: 0.95rem;
         }
 
         select, input {
             width: 100%;
             padding: 1rem;
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--border);
             border-radius: 10px;
             font-size: 1rem;
             transition: all 0.3s;
+            background-color: var(--lighter);
+            color: var(--text);
         }
 
         select:focus, input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(110, 72, 170, 0.2);
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.1);
         }
 
+        /* ================= BOUTONS ================= */
         .btn {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
             border: none;
             padding: 1rem 2rem;
@@ -134,27 +167,43 @@
             align-items: center;
             gap: 0.8rem;
             transition: all 0.3s;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            height: fit-content;
+            align-self: flex-end;
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
         }
 
+        .btn-secondary {
+            background: var(--lighter);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        /* ================= RÉSULTATS ================= */
         .results-container {
             background: var(--card-bg);
             border-radius: 16px;
             padding: 2.5rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 3rem;
         }
 
         .result-item {
-            background: #f8f9fa;
+            background: var(--light);
             border-radius: 12px;
             padding: 1.5rem;
             margin-bottom: 1.5rem;
             border-left: 4px solid var(--primary);
+            transition: transform 0.3s;
+        }
+
+        .result-item:hover {
+            transform: translateX(5px);
         }
 
         .result-header {
@@ -179,11 +228,20 @@
             border-radius: 20px;
             font-size: 0.85rem;
             font-weight: 500;
+            background-color: var(--primary-light);
+            color: white;
         }
 
         .badge-success {
-            background: var(--success);
-            color: white;
+            background-color: var(--success);
+        }
+
+        .badge-warning {
+            background-color: var(--warning);
+        }
+
+        .badge-danger {
+            background-color: var(--danger);
         }
 
         .result-content {
@@ -191,21 +249,51 @@
         }
 
         .json-viewer {
-            background: #f8f9fa;
+            background: var(--light);
             padding: 1.5rem;
             border-radius: 8px;
             font-family: 'Courier New', monospace;
             overflow-x: auto;
             max-height: 300px;
             overflow-y: auto;
+            font-size: 0.9rem;
+            color: var(--text);
         }
 
-        .action-buttons {
+        /* ================= OONGLETS ================= */
+        .tabs {
             display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 1.5rem;
         }
 
+        .tab {
+            padding: 0.8rem 1.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-light);
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab:hover:not(.active) {
+            color: var(--primary-dark);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ================= CHARGEMENT ================= */
         .loading {
             display: none;
             text-align: center;
@@ -213,7 +301,7 @@
         }
 
         .spinner {
-            border: 5px solid rgba(110, 72, 170, 0.1);
+            border: 5px solid rgba(108, 99, 255, 0.1);
             border-radius: 50%;
             border-top: 5px solid var(--primary);
             width: 50px;
@@ -227,52 +315,62 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* ================= ÉTAT VIDE ================= */
         .empty-state {
             text-align: center;
             padding: 3rem;
-            color: #666;
+            color: var(--text-light);
         }
 
         .empty-icon {
             font-size: 3rem;
-            color: #ddd;
+            color: var(--border);
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* ================= SECTION DE RÉSULTATS ================= */
+        .result-section {
+            background: var(--lighter);
+            border-radius: 8px;
+            padding: 1rem;
             margin-bottom: 1rem;
         }
 
-        .tabs {
-            display: flex;
-            border-bottom: 2px solid #eee;
-            margin-bottom: 1.5rem;
-        }
-
-        .tab {
-            padding: 0.8rem 1.5rem;
-            cursor: pointer;
-            font-weight: 500;
-            color: #666;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-        }
-
-        .tab.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-        }
-
-        .tab:hover:not(.active) {
+        .result-section h4 {
             color: var(--primary-dark);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* ================= RESPONSIVE ================= */
+        @media (max-width: 600px) {
+            .container {
+                padding: 1.5rem 1rem;
+            }
+            
+            .scan-card, .results-container {
+                padding: 1.5rem;
+            }
+            
+            .scan-title {
+                font-size: 1.3rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <div class="logo">
+            <a href="#" class="logo">
                 <i class="fas fa-spider logo-icon"></i>
                 <span class="logo-text">SPIDER INTEL</span>
-            </div>
+            </a>
         </header>
 
+        <!-- Carte de scan principal -->
         <div class="scan-card">
             <h2 class="scan-title">
                 <i class="fas fa-crosshairs"></i>
@@ -280,6 +378,7 @@
             </h2>
             
             <div class="scan-form">
+                <!-- Sélecteur de type -->
                 <div class="form-group">
                     <label for="type" class="form-label">
                         <i class="fas fa-bullseye"></i>
@@ -289,31 +388,34 @@
                         <option value="email">Email</option>
                         <option value="ip">Adresse IP</option>
                         <option value="domain">Domaine</option>
-                        <option value="celebrity">Célébrité</option>
                     </select>
                 </div>
                 
+                <!-- Champ de saisie -->
                 <div class="form-group">
                     <label for="target" class="form-label">
                         <i class="fas fa-search"></i>
                         Cible à analyser
                     </label>
                     <input type="text" id="target" class="form-input" 
-                           placeholder="exemple@domain.com ou 8.8.8.8">
+                           placeholder="exemple@domain.com, 8.8.8.8 ou google.com">
                 </div>
                 
+                <!-- Bouton de scan -->
                 <button id="scan-btn" class="btn" onclick="startScan()">
                     <i class="fas fa-search"></i>
                     Lancer le scan
                 </button>
             </div>
             
+            <!-- Indicateur de chargement -->
             <div class="loading" id="loading">
                 <div class="spinner"></div>
                 <p>Analyse en cours...</p>
             </div>
         </div>
 
+        <!-- Conteneur des résultats -->
         <div class="results-container">
             <h2 class="scan-title">
                 <i class="fas fa-clipboard-list"></i>
@@ -321,6 +423,7 @@
             </h2>
             
             <div id="results-content">
+                <!-- État initial (vide) -->
                 <div class="empty-state">
                     <div class="empty-icon">
                         <i class="fas fa-info-circle"></i>
@@ -333,23 +436,30 @@
     </div>
 
     <script>
+        // Configuration de l'API
         const API_URL = "http://localhost:8000";
         
+        /**
+         * Lance un scan OSINT
+         */
         async function startScan() {
             const type = document.getElementById('type').value;
             const target = document.getElementById('target').value.trim();
             const loading = document.getElementById('loading');
             const resultsContent = document.getElementById('results-content');
             
+            // Validation
             if (!target) {
                 alert("Veuillez entrer une cible valide");
                 return;
             }
             
+            // Affichage du loader
             loading.style.display = 'block';
             resultsContent.innerHTML = '';
             
             try {
+                // Appel à l'API
                 const response = await fetch(`${API_URL}/scan`, {
                     method: 'POST',
                     headers: {
@@ -361,60 +471,26 @@
                     })
                 });
                 
-                if (!response.ok) throw new Error('Erreur API');
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
                 
                 const data = await response.json();
                 
-                // Affichage stylisé des résultats
-                resultsContent.innerHTML = `
-                    <div class="result-item">
-                        <div class="result-header">
-                            <h3 class="result-title">
-                                <i class="fas fa-${getTargetIcon(type)}"></i>
-                                ${target}
-                            </h3>
-                            <span class="badge badge-success">Succès</span>
-                        </div>
-                        
-                        <div class="tabs">
-                            <div class="tab active" data-tab="summary">Résumé</div>
-                            <div class="tab" data-tab="json">Données brutes</div>
-                        </div>
-                        
-                        <div class="tab-content active" id="summary-tab">
-                            ${renderSummary(data.result, type)}
-                        </div>
-                        
-                        <div class="tab-content" id="json-tab" style="display:none">
-                            <pre class="json-viewer">${JSON.stringify(data.result, null, 2)}</pre>
-                        </div>
-                        
-                        <div class="action-buttons">
-                            <a href="${API_URL}${data.pdf_url}" class="btn" download>
-                                <i class="fas fa-download"></i> Télécharger PDF
-                            </a>
-                        </div>
-                    </div>
-                `;
-                
-                // Gestion des onglets
-                document.querySelectorAll('.tab').forEach(tab => {
-                    tab.addEventListener('click', () => {
-                        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-                        
-                        tab.classList.add('active');
-                        document.getElementById(`${tab.dataset.tab}-tab`).style.display = 'block';
-                    });
-                });
+                // Affichage des résultats
+                renderResults(target, type, data);
                 
             } catch (error) {
+                // Gestion des erreurs
                 resultsContent.innerHTML = `
                     <div class="result-item" style="border-left-color: var(--danger)">
-                        <h3 style="color: var(--danger)">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            Erreur
-                        </h3>
+                        <div class="result-header">
+                            <h3 style="color: var(--danger)">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Erreur
+                            </h3>
+                            <span class="badge badge-danger">Échec</span>
+                        </div>
                         <p>${error.message}</p>
                     </div>
                 `;
@@ -423,16 +499,83 @@
             }
         }
         
-        function getTargetIcon(type) {
-            switch(type) {
-                case 'email': return 'envelope';
-                case 'ip': return 'map-marker-alt';
-                case 'domain': return 'globe';
-                case 'celebrity': return 'user';
-                default: return 'search';
-            }
+        /**
+         * Affiche les résultats du scan
+         */
+        function renderResults(target, type, data) {
+            const resultsContent = document.getElementById('results-content');
+            const icon = getTargetIcon(type);
+            const summary = renderSummary(data.result, type);
+            
+            resultsContent.innerHTML = `
+                <div class="result-item">
+                    <div class="result-header">
+                        <h3 class="result-title">
+                            <i class="fas fa-${icon}"></i>
+                            ${target}
+                        </h3>
+                        <span class="badge badge-success">Succès</span>
+                    </div>
+                    
+                    <div class="tabs">
+                        <div class="tab active" data-tab="summary">Résumé</div>
+                        <div class="tab" data-tab="json">Données brutes</div>
+                    </div>
+                    
+                    <div class="tab-content active" id="summary-tab">
+                        ${summary}
+                    </div>
+                    
+                    <div class="tab-content" id="json-tab" style="display:none">
+                        <pre class="json-viewer">${JSON.stringify(data.result, null, 2)}</pre>
+                    </div>
+                    
+                    ${data.pdf_url ? `
+                    <div class="action-buttons">
+                        <a href="${API_URL}${data.pdf_url}" class="btn" download>
+                            <i class="fas fa-download"></i> Télécharger PDF
+                        </a>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            // Gestion des onglets
+            setupTabs();
         }
         
+        /**
+         * Configure la navigation par onglets
+         */
+        function setupTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Désactive tous les onglets
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+                    
+                    // Active l'onglet cliqué
+                    tab.classList.add('active');
+                    document.getElementById(`${tab.dataset.tab}-tab`).style.display = 'block';
+                });
+            });
+        }
+        
+        /**
+         * Retourne l'icône appropriée selon le type de scan
+         */
+        function getTargetIcon(type) {
+            const icons = {
+                'email': 'envelope',
+                'ip': 'map-marker-alt',
+                'domain': 'globe'
+            };
+            return icons[type] || 'search';
+        }
+        
+        /**
+         * Génère un résumé formaté selon le type de scan
+         */
         function renderSummary(data, type) {
             let html = '';
             
@@ -440,8 +583,18 @@
                 html += `
                     <div class="result-section">
                         <h4><i class="fas fa-shield-alt"></i> Sécurité</h4>
-                        <p>Leaks trouvés: ${data.leaks?.length || 0}</p>
-                        <p>Valide: ${data.is_valid ? 'Oui' : 'Non'}</p>
+                        <p>Email valide: <strong>${data.is_valid ? 'Oui ✅' : 'Non ❌'}</strong></p>
+                        <p>Email jetable: <strong>${data.is_disposable ? 'Oui ⚠️' : 'Non ✅'}</strong></p>
+                    </div>
+                    
+                    <div class="result-section">
+                        <h4><i class="fas fa-database"></i> Fuites de données</h4>
+                        ${data.leaks?.length ? `
+                            <p>Cet email apparaît dans ${data.leaks.length} fuites:</p>
+                            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                                ${data.leaks.map(leak => `<li>${leak}</li>`).join('')}
+                            </ul>
+                        ` : '<p>Aucune fuite connue ✅</p>'}
                     </div>
                 `;
             }
@@ -449,18 +602,38 @@
                 html += `
                     <div class="result-section">
                         <h4><i class="fas fa-map-marked-alt"></i> Localisation</h4>
-                        <p>Pays: ${data.country || 'Inconnu'}</p>
-                        <p>Ville: ${data.city || 'Inconnue'}</p>
+                        <p>Pays: <strong>${data.country || 'Inconnu'}</strong></p>
+                        <p>Ville: <strong>${data.city || 'Inconnue'}</strong></p>
+                        ${data.org ? `<p>Organisation: <strong>${data.org}</strong></p>` : ''}
                     </div>
+                    
+                    ${data.ports ? `
+                    <div class="result-section">
+                        <h4><i class="fas fa-plug"></i> Ports ouverts</h4>
+                        <p>${data.ports.length} ports détectés:</p>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                            ${data.ports.map(port => `<span style="background: var(--primary-light); color: white; padding: 0.3rem 0.6rem; border-radius: 4px;">${port}</span>`).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
                 `;
             }
             else if (type === 'domain') {
                 html += `
                     <div class="result-section">
-                        <h4><i class="fas fa-server"></i> DNS</h4>
-                        <p>Registrar: ${data.registrar || 'Inconnu'}</p>
-                        <p>Création: ${data.creation_date || 'Inconnue'}</p>
+                        <h4><i class="fas fa-server"></i> Informations DNS</h4>
+                        <p>Registrar: <strong>${data.registrar || 'Inconnu'}</strong></p>
+                        <p>Date de création: <strong>${data.creation_date || 'Inconnue'}</strong></p>
                     </div>
+                    
+                    ${data.dns ? `
+                    <div class="result-section">
+                        <h4><i class="fas fa-network-wired"></i> Serveurs DNS</h4>
+                        <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                            ${data.dns.map(server => `<li>${server}</li>`).join('')}
+                        </ul>
+                    </div>
+                    ` : ''}
                 `;
             }
             
