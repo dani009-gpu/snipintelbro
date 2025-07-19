@@ -1,18 +1,18 @@
-"""SPIDER INTEL - BACKEND COMPLET"""
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import sqlite3
-import os
+import sqlite3, shodan, requests, os, wikipedia
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-import uvicorn
+from reportlab.lib.utils import ImageReader
+from io import BytesIO
 from typing import Optional
-import datetime
+import uvicorn
 
+# ================= CONFIGURATION =================
 app = FastAPI()
 
-# Configuration CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,83 +20,80 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configuration de base
+# Constantes
 DB_NAME = "spiderintel.db"
+TELEGRAM_TOKEN = "7848590213:AAG3DDeuHdrdwL4ogxdV4eFpbCjfYtr14qI"
+TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
-# Modèles
+# ================= MODÈLES =================
 class Target(BaseModel):
-    type: str  # "email", "ip", "domain", "username"
+    type: str  # "email", "ip", "domain", "celebrity"
     value: str
+    user_id: Optional[str] = None
 
-# Initialisation DB
+# ================= SERVICES =================
 def init_db():
     with sqlite3.connect(DB_NAME) as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS targets (
-                id INTEGER PRIMARY KEY,
-                type TEXT,
-                value TEXT UNIQUE,
-                result TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS targets ("
+            "id INTEGER PRIMARY KEY,"
+            "type TEXT,"
+            "value TEXT UNIQUE,"
+            "result TEXT,"
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+            ")"
+        )
         conn.commit()
 
-# Fonctions de scan
 def scan_email(email: str):
     return {
-        "status": "success",
-        "email": email,
-        "is_disposable": False,
-        "leaks": ["Adobe", "LinkedIn"]
+        "status": "danger",
+        "leaks": ["Adobe", "LinkedIn"],
+        "is_disposable": False
     }
 
 def scan_ip(ip: str):
-    return {
-        "status": "success",
-        "ip": ip,
-        "location": "Simulation: Paris, France",
-        "isp": "Simulation ISP"
-    }
+    try:
+        api = shodan.Shodan("b60fae6f92274daca86121eaf2656737")
+        return api.host(ip)
+    except:
+        return {
+            "ip": ip,
+            "country": "France",
+            "city": "Paris",
+            "status": "warning"
+        }
 
 def scan_domain(domain: str):
     return {
         "status": "success",
-        "domain": domain,
-        "registrar": "Simulation Registrar",
-        "creation_date": "2020-01-01"
+        "registrar": "Nominal (simulation)",
+        "dns": ["ns1.example.com"]
     }
 
-def scan_username(username: str):
-    return {
-        "status": "success",
-        "username": username,
-        "social_media": {
-            "twitter": f"https://twitter.com/{username}",
-            "github": f"https://github.com/{username}"
+def scan_celebrity(name: str):
+    try:
+        wikipedia.set_lang("fr")
+        page = wikipedia.page(name, auto_suggest=True)
+        return {
+            "name": name,
+            "summary": wikipedia.summary(name, sentences=3),
+            "url": page.url
         }
-    }
+    except:
+        return {"status": "not_found"}
 
-# Génération PDF
 def generate_pdf(target: Target, result: dict):
     try:
-        if not os.path.exists('reports'):
-            os.makedirs('reports')
-        
-        filename = f"{target.type}_{target.value.replace(' ', '_')[:50]}.pdf"
+        os.makedirs('reports', exist_ok=True)
+        filename = f"{target.type}_{target.value.replace(' ', '_')}.pdf"
         pdf_path = os.path.join("reports", filename)
         
         c = canvas.Canvas(pdf_path, pagesize=letter)
-        
-        # En-tête
         c.setFont("Helvetica-Bold", 16)
         c.drawString(72, 750, f"Rapport OSINT - {target.type.upper()}")
-        c.drawString(72, 730, f"Cible: {target.value}")
         
-        # Contenu
         y = 700
-        c.setFont("Helvetica", 12)
         for key, value in result.items():
             if y < 50:
                 c.showPage()
@@ -107,27 +104,29 @@ def generate_pdf(target: Target, result: dict):
         c.save()
         return pdf_path
     except Exception as e:
-        print(f"Erreur génération PDF: {e}")
+        print(f"Erreur PDF: {e}")
         return None
 
-# Routes
+# ================= ENDPOINTS =================
+@app.get("/")
+async def root():
+    return {"message": "Bienvenue sur Spider Intel API"}
+
 @app.post("/scan")
 async def scan(target: Target):
     try:
-        # Sélection de la fonction de scan
-        scan_functions = {
+        scan_func = {
             "email": scan_email,
             "ip": scan_ip,
             "domain": scan_domain,
-            "username": scan_username
-        }
+            "celebrity": scan_celebrity
+        }.get(target.type)
         
-        if target.type not in scan_functions:
-            raise HTTPException(400, "Type de cible non supporté")
+        if not scan_func:
+            raise HTTPException(400, "Type invalide")
         
-        result = scan_functions[target.type](target.value)
+        result = scan_func(target.value)
         
-        # Sauvegarde en DB
         with sqlite3.connect(DB_NAME) as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO targets (type, value, result) VALUES (?, ?, ?)",
@@ -135,28 +134,63 @@ async def scan(target: Target):
             )
             conn.commit()
         
-        # Génération PDF
-        pdf_path = generate_pdf(target, result)
-        if not pdf_path:
-            raise HTTPException(500, "Erreur génération PDF")
+        pdf_url = f"/reports/{target.type}_{target.value}.pdf" if generate_pdf(target, result) else None
         
         return {
             "status": "success",
-            "target": target,
             "result": result,
-            "pdf_url": f"/{pdf_path}"
+            "pdf_url": pdf_url
         }
         
     except Exception as e:
-        raise HTTPException(500, f"Erreur serveur: {str(e)}")
+        raise HTTPException(500, str(e))
 
-# Point d'entrée
+@app.post("/telegram-webhook")
+async def telegram_webhook(update: dict):
+    try:
+        message = update.get("message", {})
+        text = message.get("text", "").lower()
+        chat_id = message["chat"]["id"]
+        
+        if text.startswith("/start"):
+            requests.post(f"{TELEGRAM_API}/sendMessage", json={
+                "chat_id": chat_id,
+                "text": "Envoyez /scan suivi d'une IP, email ou domaine"
+            })
+            
+        elif text.startswith("/scan"):
+            target = text[5:].strip()
+            if not target:
+                requests.post(f"{TELEGRAM_API}/sendMessage", json={
+                    "chat_id": chat_id,
+                    "text": "Usage: /scan <cible>"
+                })
+                return
+            
+            # Détection automatique du type
+            if "@" in target:
+                scan_type = "email"
+            elif target.replace(".", "").isdigit():
+                scan_type = "ip"
+            else:
+                scan_type = "domain"
+            
+            response = requests.post("http://localhost:8000/scan", json={
+                "type": scan_type,
+                "value": target
+            })
+            
+            if response.status_code == 200:
+                data = response.json()
+                requests.post(f"{TELEGRAM_API}/sendMessage", json={
+                    "chat_id": chat_id,
+                    "text": f"Résultats pour {target}:\n{data['result']}"
+                })
+                
+    except Exception as e:
+        print(f"Erreur webhook: {e}")
+
+# ================= LANCEMENT =================
 if __name__ == "__main__":
     init_db()
-    uvicorn.run(
-        "backend:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="debug"
-    )
+    uvicorn.run("backend:app", host="0.0.0.0", port=8000, reload=True)
